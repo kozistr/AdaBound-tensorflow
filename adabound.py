@@ -13,7 +13,6 @@ from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
 
 
-@tf_export("train.AdaBoundOptimizer")
 class AdaBoundOptimizer(optimizer.Optimizer):
     """Optimizer that implements the AdaBound algorithm.
 
@@ -47,18 +46,34 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         # Created in SparselyApply if needed
         self._updated_lr = None
 
-    def _get_beta_accumulators(self):
+    def _get_accumulators(self):
         with ops.init_scope():
             if context.executing_eagerly():
                 graph = None
             else:
                 graph = ops.get_default_graph()
             return (self._get_non_slot_variable("beta1_power", graph=graph),
-                    self._get_non_slot_variable("beta2_power", graph=graph))
+                    self._get_non_slot_variable("beta2_power", graph=graph),
+                    self._get_non_slot_variable("gamma_power", graph=graph))
 
     def _create_slots(self, var_list):
+        first_var = min(var_list, key=lambda x: x.name)
+        self._create_non_slot_variable(initial_value=self._beta1,
+                                       name="beta1_power",
+                                       colocate_with=first_var)
+        self._create_non_slot_variable(initial_value=self._beta2,
+                                       name="beta2_power",
+                                       colocate_with=first_var)
+        self._create_non_slot_variable(initial_value=self._gamma,
+                                       name="gamma_power",
+                                       colocate_with=first_var)
+
+        # Create slots for the first and second moments
         for v in var_list:
-            self._zeros_slot(v, "m", self._name)
+            self._zeros_slot(v, "exp_avg", self._name)
+            self._zeros_slot(v, "exp_avg_sq", self._name)
+            if self._amsbound:
+                self._zeros_slot(v, "max_exp_avg_sq", self._name)
 
     def _prepare(self):
         lr = self._call_if_callable(self._lr)
@@ -80,9 +95,15 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         self._amsbound_t = ops.convert_to_tensor(amsbound, name="amsbound")
 
     def _apply_dense(self, grad, var):
-        lr_t = math_ops.cast(self._lr_t, var.dtype.base_dtype)
+        exp_avg = self.get_slot(var, "exp_avg")
+        exp_avg_sq = self.get_slot(var, "exp_avg_sq")
+        if self._amsbound:
+            max_exp_avg_sq = self.get_slot(var, "max_exp_avg_sq")
+
+        lr = math_ops.cast(self._lr_t, var.dtype.base_dtype)
         beta1 = math_ops.cast(self._beta1_t, var.dtype.base_dtype)
         beta2 = math_ops.cast(self._beta2_t, var.dtype.base_dtype)
+        final_lr = math_ops.cast(self._final_lr, var.dtype.base_dtype)
         gamma = math_ops.cast(self._gamma, var.dtype.base_dtype)
 
     def _apply_sparse(self, grad, var):
