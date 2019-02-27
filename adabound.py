@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import state_ops
+from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
@@ -46,7 +47,43 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         # Created in SparselyApply if needed
         self._updated_lr = None
 
+    def _get_beta_accumulators(self):
+        with ops.init_scope():
+            if context.executing_eagerly():
+                graph = None
+            else:
+                graph = ops.get_default_graph()
+            return (self._get_non_slot_variable("beta1_power", graph=graph),
+                    self._get_non_slot_variable("beta2_power", graph=graph))
+
+    def _create_slots(self, var_list):
+        for v in var_list:
+            self._zeros_slot(v, "m", self._name)
+
     def _prepare(self):
-        pass
+        lr = self._call_if_callable(self._lr)
+        beta1 = self._call_if_callable(self._beta1)
+        beta2 = self._call_if_callable(self._beta2)
+        final_lr = self._call_if_callable(self._final_lr)
+        gamma = self._call_if_callable(self._gamma)
+        epsilon = self._call_if_callable(self._epsilon)
+        weight_decay = self._call_if_callable(self._weight_decay)
+        amsbound = self._call_if_callable(self._amsbound)
 
+        self._lr_t = ops.convert_to_tensor(lr, name="learning_rate")
+        self._beta1_t = ops.convert_to_tensor(beta1, name="beta1")
+        self._beta2_t = ops.convert_to_tensor(beta2, name="beta2")
+        self._final_lr = ops.convert_to_tensor(final_lr, name="final_lr")
+        self._gamma_t = ops.convert_to_tensor(gamma, name="gamma")
+        self._epsilon_t = ops.convert_to_tensor(epsilon, name="epsilon")
+        self._weight_decay_t = ops.convert_to_tensor(weight_decay, name="weight_decay")
+        self._amsbound_t = ops.convert_to_tensor(amsbound, name="amsbound")
 
+    def _apply_dense(self, grad, var):
+        lr_t = math_ops.cast(self._lr_t, var.dtype.base_dtype)
+        beta1 = math_ops.cast(self._beta1_t, var.dtype.base_dtype)
+        beta2 = math_ops.cast(self._beta2_t, var.dtype.base_dtype)
+        gamma = math_ops.cast(self._gamma, var.dtype.base_dtype)
+
+    def _apply_sparse(self, grad, var):
+        raise NotImplementedError("Sparse gradient updates are not supported")
