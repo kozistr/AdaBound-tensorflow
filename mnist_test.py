@@ -15,7 +15,7 @@ def train(sess,
           input_shape=(None, 784), n_classes=10,
           n_feat=32, n_layers=2,
           optimizer="adabound", lr=1e-3, grad_clip=1.,
-          log_dir="./logs", model_dir="./model"):
+          log_dir="./logs"):
     def prepare_optimizer(optimizer_name="adabound"):
         if optimizer_name == "adabound":
             return AdaBoundOptimizer(learning_rate=lr)
@@ -112,7 +112,9 @@ def main(training_steps,
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
         # 2. loading the model
-        (x, y, do_rate), merged, train_op, loss, (tr_writer, te_writer, saver) = train(
+        (x, y, do_rate),\
+        merged, train_op, loss,\
+        (tr_writer, te_writer, saver) = train(
             sess=sess,
             input_shape=(None, 28 * 28),
             n_classes=n_classes,
@@ -140,18 +142,20 @@ def main(training_steps,
             x_tr, y_tr = mnist.train.next_batch(batch_size)
             x_tr /= 255.
 
-            _, tr_loss = sess.run([train_op, loss], feed_dict={
-                x: x_tr,
-                y: y_tr,
-                do_rate: dropout,
-            })
+            _, tr_loss = sess.run([train_op, loss],
+                                  feed_dict={
+                                      x: x_tr,
+                                      y: y_tr,
+                                      do_rate: dropout,
+                                  })
 
             if steps and steps % logging_steps == 0:
-                summary = sess.run(merged, feed_dict={
-                    x: mnist.test.images / 255.,
-                    y: mnist.test.labels,
-                    do_rate: 1.,
-                })
+                summary = sess.run(merged,
+                                   feed_dict={
+                                       x: mnist.test.images / 255.,
+                                       y: mnist.test.labels,
+                                       do_rate: 1.,
+                                   })
 
                 te_writer.add_summary(summary, global_step)
                 saver.save(sess, model_dir, global_step)
@@ -159,11 +163,12 @@ def main(training_steps,
             if steps and steps % logging_steps == 0:
                 print("[*] steps %05d : loss %.6f" % (steps, tr_loss))
 
-                summary = sess.run(merged, feed_dict={
-                    x: x_tr,
-                    y: y_tr,
-                    do_rate: dropout,
-                })
+                summary = sess.run(merged,
+                                   feed_dict={
+                                       x: x_tr,
+                                       y: y_tr,
+                                       do_rate: dropout,
+                                   })
 
                 tr_writer.add_summary(summary, global_step)
 
