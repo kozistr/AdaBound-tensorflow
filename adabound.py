@@ -120,11 +120,8 @@ class AdaBoundOptimizer(tf.train.Optimizer):
                                           clip_value_max=upper_bound)
             p_t = param - lr_t
 
-            # TODO: Selectively decay the weight by the layer name
-            """
             if self._do_use_weight_decay(param_name):
                 p_t += self._weight_decay * param
-            """
 
             assignments.extend(
                 [param.assign(p_t),
