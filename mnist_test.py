@@ -151,6 +151,15 @@ def main(training_steps,
                 te_writer.add_summary(summary, global_step)
                 saver.save(sess, model_dir, global_step)
 
+            if steps and steps % logging_steps == 0:
+                summary = sess.run(merged, feed_dict={
+                    x: x_tr / 255.,
+                    y: y_tr,
+                    do_rate: dropout,
+                })
+
+                tr_writer.add_summary(summary, global_step)
+
             global_step += 1
 
 
