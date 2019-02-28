@@ -140,7 +140,7 @@ def main(training_steps,
             x_tr, y_tr = mnist.train.next_batch(batch_size)
             x_tr /= 255.
 
-            _, loss = sess.run([train_op, loss], feed_dict={
+            _, tr_loss = sess.run([train_op, loss], feed_dict={
                 x: x_tr,
                 y: y_tr,
                 do_rate: dropout,
@@ -157,7 +157,7 @@ def main(training_steps,
                 saver.save(sess, model_dir, global_step)
 
             if steps and steps % logging_steps == 0:
-                print("[*] steps %05d : loss %.6f" % (steps, loss))
+                print("[*] steps %05d : loss %.6f" % (steps, tr_loss))
 
                 summary = sess.run(merged, feed_dict={
                     x: x_tr,
