@@ -20,9 +20,11 @@ def train(sess,
           n_feat=32, n_blocks=2,
           optimizer="adabound", lr=1e-3, grad_clip=0.,
           log_dir="./logs"):
-    def prepare_optimizer(optimizer_name="adabound"):
+    def prepare_optimizer(optimizer_name):
         if optimizer_name == "adabound":
             return AdaBoundOptimizer(learning_rate=lr)
+        elif optimizer_name == "amsbound":
+            return AdaBoundOptimizer(learning_rate=lr, amsbound=True)
         elif optimizer_name == "adam":
             return tf.train.AdamOptimizer(learning_rate=lr)
         elif optimizer_name == "sgd":
@@ -32,7 +34,7 @@ def train(sess,
         elif optimizer_name == "momentum":
             return tf.train.MomentumOptimizer(learning_rate=lr, momentum=1e-6, use_nesterov=True)
         else:
-            raise NotImplementedError("[-] Unsupported Optimizer")
+            raise NotImplementedError("[-] Unsupported Optimizer %s" % optimizer_name)
 
     with tf.name_scope("inputs"):
         img = tf.placeholder(tf.float32, shape=input_shape, name="x-image")
@@ -82,7 +84,7 @@ def train(sess,
         # Normally the global step update is done inside of `apply_gradients`.
         # However, my version of `AdaBoundyOptimizer` doesn't do this. But if you use
         # a different optimizer, you should probably take this line out.
-        if optimizer == "adabound":
+        if optimizer in ["adabound", "amsbound"]:
             train_op = tf.group(train_op, [global_step.assign(global_step + 1)])
 
     with tf.name_scope("metric"):
@@ -192,7 +194,8 @@ if __name__ == "__main__":
     parser.add_argument('--n_classes', required=False, type=int, default=10)
     parser.add_argument('--batch_size', required=False, type=int, default=128)
     parser.add_argument('--learning_rate', required=False, type=float, default=0.001)
-    parser.add_argument('--optimizer', required=False, type=str, default="adabound")
+    parser.add_argument('--optimizer', required=False, type=str, default="adabound",
+                        choices=["adabound", "amsbound", "adam", "sgd", "momentum", "adagrad"])
     parser.add_argument('--filters', required=False, type=int, default=32)
     parser.add_argument('--n_blocks', required=False, type=int, default=4)
     parser.add_argument('--dropout', required=False, type=float, default=0.5)
