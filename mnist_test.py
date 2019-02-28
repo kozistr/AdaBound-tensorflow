@@ -31,12 +31,12 @@ def train(sess,
             raise NotImplementedError("[-] Unsupported Optimizer")
 
     with tf.name_scope("inputs"):
-        x = tf.placeholder(tf.float32, shape=input_shape, name="x-image")
-        y = tf.placeholder(tf.int32, shape=(None, n_classes), name="y-label")
+        img = tf.placeholder(tf.float32, shape=input_shape, name="x-image")
+        label = tf.placeholder(tf.int32, shape=(None, n_classes), name="y-label")
         do_rate = tf.placeholder(tf.float32, shape=(), name="dropout")
 
     with tf.variable_scope("simple_cnn_model"):
-        x = tf.reshape(x, [-1, 28, 28, 1])
+        x = tf.reshape(img, [-1, 28, 28, 1])
 
         for n_layer_idx in range(n_layers):
             with tf.variable_scope("cnn_layer_%d" % n_layer_idx):
@@ -56,7 +56,7 @@ def train(sess,
         pred = tf.nn.softmax(logits)
 
     with tf.name_scope("loss"):
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=y))
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=label))
 
     with tf.name_scope("train"):
         global_step = tf.train.get_or_create_global_step()
@@ -76,7 +76,7 @@ def train(sess,
         train_op = tf.group(train_op, [global_step.assign(global_step + 1)])
 
     with tf.name_scope("metric"):
-        corr_pred = tf.equal(tf.argmax(pred, axis=1), tf.argmax(y, axis=1))
+        corr_pred = tf.equal(tf.argmax(pred, axis=1), tf.argmax(label, axis=1))
         acc = tf.reduce_mean(tf.cast(corr_pred, dtype=tf.float32))
 
     with tf.name_scope("summary"):
@@ -87,7 +87,7 @@ def train(sess,
     train_writer = tf.summary.FileWriter(os.path.join(log_dir, "train"), sess.graph)
     test_writer = tf.summary.FileWriter(os.path.join(log_dir, "test"), sess.graph)
     saver = tf.train.Saver(max_to_keep=1)
-    return (x, y, do_rate), merged, train_op, (train_writer, test_writer, saver)
+    return (img, label, do_rate), merged, train_op, loss, (train_writer, test_writer, saver)
 
 
 def main(training_steps,
@@ -112,7 +112,7 @@ def main(training_steps,
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
         # 2. loading the model
-        (x, y, do_rate), merged, train_op, (tr_writer, te_writer, saver) = train(
+        (x, y, do_rate), merged, train_op, loss, (tr_writer, te_writer, saver) = train(
             sess=sess,
             input_shape=(None, 28 * 28),
             n_classes=n_classes,
@@ -138,9 +138,10 @@ def main(training_steps,
 
         for steps in range(global_step, training_steps):
             x_tr, y_tr = mnist.train.next_batch(batch_size)
+            x_tr /= 255.
 
-            sess.run(train_op, feed_dict={
-                x: x_tr / 255.,
+            _, loss = sess.run([train_op, loss], feed_dict={
+                x: x_tr,
                 y: y_tr,
                 do_rate: dropout,
             })
@@ -156,8 +157,10 @@ def main(training_steps,
                 saver.save(sess, model_dir, global_step)
 
             if steps and steps % logging_steps == 0:
+                print("[*] steps %05d : loss %.6f" % (steps, loss))
+
                 summary = sess.run(merged, feed_dict={
-                    x: x_tr / 255.,
+                    x: x_tr,
                     y: y_tr,
                     do_rate: dropout,
                 })
