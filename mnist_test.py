@@ -86,7 +86,7 @@ def train(sess,
     merged = tf.summary.merge_all()
     train_writer = tf.summary.FileWriter(os.path.join(log_dir, "train"), sess.graph)
     test_writer = tf.summary.FileWriter(os.path.join(log_dir, "test"), sess.graph)
-    saver = tf.train.Saver(model_dir, max_to_keep=1)
+    saver = tf.train.Saver(max_to_keep=1)
     return (x, y, do_rate), merged, train_op, (train_writer, test_writer, saver)
 
 
