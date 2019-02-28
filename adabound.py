@@ -54,15 +54,15 @@ class AdaBoundOptimizer(tf.train.Optimizer):
 
     def apply_gradients(self, grads_and_vars, global_step=None, name=None):
         lr = self._lr
-        t = global_step
+        t = tf.cast(global_step, dtype=tf.float32)
 
         if self._weight_decay > 0.:
             lr *= (1. / (1. + self._weight_decay * t))
 
         t += 1
 
-        bias_correction1 = 1. - tf.pow(self._beta1, t)
-        bias_correction2 = 1. - tf.pow(self._beta2, t)
+        bias_correction1 = 1. - (self._beta1 ** t)
+        bias_correction2 = 1. - (self._beta2 ** t)
         step_size = (lr * tf.sqrt(1. - bias_correction2) / bias_correction1)
 
         # Applies bounds on actual learning rate
