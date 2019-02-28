@@ -17,7 +17,23 @@ Based on Luo et al. (2019). [Adaptive Gradient Methods with Dynamic Bound of Lea
 
 ## Usage
 
-`optimizer = AdaBound(lr=1e-3, final_lr=1e-1)`
+```python
+optimizer = AdaBoundOptimizer(
+    learning_rate=1e-3,
+    final_lr=1e-1,
+    beta_1=0.9,
+    beta_2=0.999,
+    gamma=1e-3,
+    epsilon=1e-6,
+    amsbound=True,
+    weight_decay=0.,
+    exclude_from_weight_decay=["LayerNorm", "layer_norm", "bias"]
+)
+```
+
+## To-Do
+
+1. Applying weight decay by the layer name, conditionally
 
 ## Demos
 
