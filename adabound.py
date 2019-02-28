@@ -105,7 +105,7 @@ class AdaBoundOptimizer(tf.train.Optimizer):
 
             if self._amsbound:
                 # Maintains the maximum of all 2nd moment running avg. till now
-                v_hat_t = tf.maximum(v_hat_t, v_t)
+                v_hat_t = tf.maximum(v_hat, v_t)
 
                 # Use the max. for normalizing running avg. of gradient
                 denom = (tf.sqrt(v_hat_t) + self._epsilon)
