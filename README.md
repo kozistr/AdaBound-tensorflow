@@ -3,7 +3,7 @@ An optimizer that trains as fast as Adam and as good as SGD in Tensorflow
 
 This repo is based on pytorch impl [original repo](https://github.com/Luolc/AdaBound)
 
-*Currently, Under-Development....* maybe take some while...
+**initial impl is done!, but i cannot sure 100% :(** 
 
 ## Explanation
 An optimizer that trains as fast as Adam and as good as SGD, 
