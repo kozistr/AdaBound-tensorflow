@@ -11,6 +11,7 @@ from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
 from tensorflow.python.training import optimizer
 from tensorflow.python.util.tf_export import tf_export
+import re
 
 
 class AdaBoundOptimizer(optimizer.Optimizer):
@@ -19,10 +20,31 @@ class AdaBoundOptimizer(optimizer.Optimizer):
     See [Luo et al., 2019](https://openreview.net/forum?id=Bkg3g2R9FX)
     ([pdf](https://openreview.net/pdf?id=Bkg3g2R9FX)).
     """
-    def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, final_lr=0.1, gamma=1e-3,
-                 epsilon=1e-8, weight_decay=0., amsbound=False,
+    def __init__(self,
+                 learning_rate=0.001,
+                 final_lr=0.1,
+                 beta1=0.9,
+                 beta2=0.999,
+                 gamma=1e-3,
+                 epsilon=1e-8,
+                 amsbound=False,
+                 weight_decay=0.,
+                 exclude_from_weight_decay=None,
                  use_locking=False, name="AdaBound"):
         super(AdaBoundOptimizer, self).__init__(use_locking, name)
+
+        if learning_rate <= 0.:
+            raise ValueError("Invalid learning rate : {}".format(learning_rate))
+        if final_lr <= 0.:
+            raise ValueError("Invalid final learning rate : {}".format(final_lr))
+        if not 0. <= beta1 < 1.:
+            raise ValueError("Invalid beta1 value : {}".format(beta1))
+        if not 0. <= beta2 < 1.:
+            raise ValueError("Invalid beta2 value : {}".format(beta2))
+        if not 0. <= gamma < 1.:
+            raise ValueError("Invalid gamma value : {}".format(gamma))
+        if epsilon <= 0.:
+            raise ValueError("Invalid epsilon value : {}".format(epsilon))
 
         self._lr = learning_rate
         self._beta1 = beta1
@@ -30,81 +52,104 @@ class AdaBoundOptimizer(optimizer.Optimizer):
         self._final_lr = final_lr
         self._gamma = gamma
         self._epsilon = epsilon
-        self._weight_decay = weight_decay
         self._amsbound = amsbound
+        self._weight_decay = weight_decay
+        self._exclude_from_weight_decay = exclude_from_weight_decay
 
-        # Tensor versions of the constructor arguments, created in _prepare()
-        self._lr_t = None
-        self._beta1_t = None
-        self._beta2_t = None
-        self._final_lr = None
-        self._gamma_t = None
-        self._epsilon_t = None
-        self._weight_decay_t = None
-        self._amsbound_t = None
+        self._base_lr = learning_rate
 
-        # Created in SparselyApply if needed
-        self._updated_lr = None
+    def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+        lr = self._lr
+        t = global_step
 
-    def _get_accumulators(self):
-        with ops.init_scope():
-            if context.executing_eagerly():
-                graph = None
-            else:
-                graph = ops.get_default_graph()
-            return (self._get_non_slot_variable("beta1_power", graph=graph),
-                    self._get_non_slot_variable("beta2_power", graph=graph),
-                    self._get_non_slot_variable("gamma_power", graph=graph))
+        if self._weight_decay > 0.:
+            lr *= (1. / (1. + self._weight_decay * t))
 
-    def _create_slots(self, var_list):
-        first_var = min(var_list, key=lambda x: x.name)
-        self._create_non_slot_variable(initial_value=self._beta1,
-                                       name="beta1_power",
-                                       colocate_with=first_var)
-        self._create_non_slot_variable(initial_value=self._beta2,
-                                       name="beta2_power",
-                                       colocate_with=first_var)
-        self._create_non_slot_variable(initial_value=self._gamma,
-                                       name="gamma_power",
-                                       colocate_with=first_var)
+        t += 1
 
-        # Create slots for the first and second moments
-        for v in var_list:
-            self._zeros_slot(v, "exp_avg", self._name)
-            self._zeros_slot(v, "exp_avg_sq", self._name)
+        bias_correction1 = 1. - tf.pow(self._beta1, t)
+        bias_correction2 = 1. - tf.pow(self._beta2, t)
+        step_size = (lr * tf.sqrt(1. - bias_correction2) / bias_correction1)
+
+        # Applies bounds on actual learning rate
+        # lr_scheduler cannot affect final_lr, this is a workaround to apply lr decay
+        final_lr = self._final_lr * lr / self._base_lr
+        lower_bound = final_lr * (1. - 1. / (self._gamma * t + 1.))
+        upper_bound = final_lr * (1. + 1. / (self._gamma * t))
+
+        assignments = []
+        for grad, param in grads_and_vars:
+            if grad is None and param is None:
+                continue
+
+            param_name = self._get_variable_name(param.name)
+
+            m = tf.get_variable(
+                name=param_name + "/adabound_m",
+                shape=param.shape.as_list(),
+                dtype=tf.float32,
+                trainable=False,
+                initializer=tf.zeros_initializer())
+            v = tf.get_variable(
+                name=param_name + "/adabound_v",
+                shape=param.shape.as_list(),
+                dtype=tf.float32,
+                trainable=False,
+                initializer=tf.zeros_initializer())
+            v_hat = tf.get_variable(
+                name=param_name + "/adabound_v_hat",
+                shape=param.shape.as_list(),
+                dtype=tf.float32,
+                trainable=False,
+                initializer=tf.zeros_initializer())
+
+            m_t = (
+                tf.multiply(self._beta1, m) + tf.multiply(1. - self._beta1, grad))
+            v_t = (
+                tf.multiply(self._beta2, v) + tf.multiply(1. - self._beta2, tf.square(grad)))
+
             if self._amsbound:
-                self._zeros_slot(v, "max_exp_avg_sq", self._name)
+                # Maintains the maximum of all 2nd moment running avg. till now
+                v_hat_t = tf.maximum(v_hat_t, v_t)
 
-    def _prepare(self):
-        lr = self._call_if_callable(self._lr)
-        beta1 = self._call_if_callable(self._beta1)
-        beta2 = self._call_if_callable(self._beta2)
-        final_lr = self._call_if_callable(self._final_lr)
-        gamma = self._call_if_callable(self._gamma)
-        epsilon = self._call_if_callable(self._epsilon)
-        weight_decay = self._call_if_callable(self._weight_decay)
-        amsbound = self._call_if_callable(self._amsbound)
+                # Use the max. for normalizing running avg. of gradient
+                denom = (tf.sqrt(v_hat_t) + self._epsilon)
+            else:
+                denom = (tf.sqrt(v_t) + self._epsilon)
 
-        self._lr_t = ops.convert_to_tensor(lr, name="learning_rate")
-        self._beta1_t = ops.convert_to_tensor(beta1, name="beta1")
-        self._beta2_t = ops.convert_to_tensor(beta2, name="beta2")
-        self._final_lr = ops.convert_to_tensor(final_lr, name="final_lr")
-        self._gamma_t = ops.convert_to_tensor(gamma, name="gamma")
-        self._epsilon_t = ops.convert_to_tensor(epsilon, name="epsilon")
-        self._weight_decay_t = ops.convert_to_tensor(weight_decay, name="weight_decay")
-        self._amsbound_t = ops.convert_to_tensor(amsbound, name="amsbound")
+            step_size_p = step_size * tf.ones_like(denom)
+            step_size_p_
 
-    def _apply_dense(self, grad, var):
-        exp_avg = self.get_slot(var, "exp_avg")
-        exp_avg_sq = self.get_slot(var, "exp_avg_sq")
-        if self._amsbound:
-            max_exp_avg_sq = self.get_slot(var, "max_exp_avg_sq")
+            update = m_t / (tf.sqrt(v_t) + self._epsilon)
 
-        lr = math_ops.cast(self._lr_t, var.dtype.base_dtype)
-        beta1 = math_ops.cast(self._beta1_t, var.dtype.base_dtype)
-        beta2 = math_ops.cast(self._beta2_t, var.dtype.base_dtype)
-        final_lr = math_ops.cast(self._final_lr, var.dtype.base_dtype)
-        gamma = math_ops.cast(self._gamma, var.dtype.base_dtype)
+            # Selectively decay the weight by the layer name
+            if self._do_use_weight_decay(param_name):
+                update += self._weight_decay * param
 
-    def _apply_sparse(self, grad, var):
-        raise NotImplementedError("Sparse gradient updates are not supported")
+            update_with_lr = self.learning_rate * update
+
+            next_param = param - update_with_lr
+
+            assignments.extend(
+                [param.assign(next_param),
+                 m.assign(m_t),
+                 v.assign(v_t)])
+        return tf.group(*assignments, name=name)
+
+    def _do_use_weight_decay(self, param_name):
+        """Whether to use L2 weight decay for `param_name`."""
+        if not self.weight_decay_rate:
+            return False
+        if self.exclude_from_weight_decay:
+            for r in self.exclude_from_weight_decay:
+                if re.search(r, param_name) is not None:
+                    return False
+        return True
+
+    @staticmethod
+    def _get_variable_name(param_name):
+        """Get the variable name from the tensor name."""
+        m = re.match("^(.*):\\d+$", param_name)
+        if m is not None:
+            param_name = m.group(1)
+        return param_name
