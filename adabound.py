@@ -123,10 +123,11 @@ class AdaBoundOptimizer(tf.train.Optimizer):
             if self._do_use_weight_decay(param_name):
                 p_t += self._weight_decay * param
 
-            assignments.extend(
-                [param.assign(p_t),
-                 m.assign(m_t),
-                 v.assign(v_t)])
+            update_list = [param.assign(p_t), m.assign(m_t), v.assign(v_t)]
+            if self._amsbound:
+                update_list.append(v_hat.assign(v_hat_t))
+
+            assignments.extend(update_list)
         return tf.group(*assignments, name=name)
 
     def _do_use_weight_decay(self, param_name):
