@@ -11,9 +11,13 @@ from tensorflow.examples.tutorials.mnist import input_data
 from adabound import AdaBoundOptimizer
 
 
+w_init = tf.contrib.layers.variance_scaling_initializer(factor=3., mode='FAN_AVG', uniform=True)
+w_reg = tf.contrib.layers.l2_regularizer(5e-4)
+
+
 def train(sess,
           input_shape=(None, 784), n_classes=10,
-          n_feat=32, n_layers=2,
+          n_feat=32, n_blocks=2,
           optimizer="adabound", lr=1e-3, grad_clip=1.,
           log_dir="./logs"):
     def prepare_optimizer(optimizer_name="adabound"):
@@ -38,21 +42,24 @@ def train(sess,
     with tf.variable_scope("simple_cnn_model"):
         x = tf.reshape(img, [-1, 28, 28, 1])
 
-        for n_layer_idx in range(n_layers):
+        for n_layer_idx in range(n_blocks):
             with tf.variable_scope("cnn_layer_%d" % n_layer_idx):
-                x = tf.layers.conv2d(x, filters=n_feat, kernel_size=3, strides=2, padding='SAME')
+                x = tf.layers.conv2d(x, filters=n_feat, kernel_size=3, strides=1, padding='SAME',
+                                     kernel_initializer=w_init, kernel_regularizer=w_reg)
                 x = tf.nn.leaky_relu(x, alpha=0.2)
                 x = tf.nn.dropout(x, keep_prob=do_rate)
-
+                x = tf.layers.max_pooling2d(x, pool_size=(3, 3), strides=(2, 2)) if n_layer_idx % 2 == 0 else 0
                 n_feat *= 2
 
         x = tf.layers.flatten(x)
 
-        x = tf.layers.dense(x, units=128)
+        x = tf.layers.dense(x, units=512,
+                            kernel_initializer=w_init, kernel_regularizer=w_reg)
         x = tf.nn.leaky_relu(x, alpha=0.2)
         x = tf.nn.dropout(x, keep_prob=do_rate)
 
-        logits = tf.layers.dense(x, units=n_classes)
+        logits = tf.layers.dense(x, units=n_classes,
+                                 kernel_initializer=w_init, kernel_regularizer=w_reg)
         pred = tf.nn.softmax(logits)
 
     with tf.name_scope("loss"):
@@ -95,6 +102,7 @@ def main(training_steps,
          n_classes,
          learning_rate,
          optimizer,
+         n_blocks,
          filters,
          dropout,
          model_dir,
@@ -118,6 +126,7 @@ def main(training_steps,
             sess=sess,
             input_shape=(None, 28 * 28),
             n_classes=n_classes,
+            n_blocks=n_blocks,
             n_feat=filters,
             optimizer=optimizer,
             lr=learning_rate,
@@ -183,12 +192,17 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', required=False, type=float, default=0.001)
     parser.add_argument('--optimizer', required=False, type=str, default="adabound")
     parser.add_argument('--filters', required=False, type=int, default=32)
-    parser.add_argument('--dropout', required=False, type=float, default=0.5)
+    parser.add_argument('--n_blocks', required=False, type=int, default=4)
+    parser.add_argument('--dropout', required=False, type=float, default=0.25)
     parser.add_argument('--model_dir', required=False, type=str, default="./model/")
     parser.add_argument('--data_dir', required=False, type=str, default="./mnist/")
     parser.add_argument('--log_dir', required=False, type=str, default="./logs")
     parser.add_argument('--logging_steps', required=False, type=int, default=1000)
+    parser.add_argument('--seed', required=False, type=int, default=1337)
     args = vars(parser.parse_args())
+
+    # reproducibility
+    tf.set_random_seed(args["seed"])
 
     main(
         training_steps=args["training_steps"],
@@ -196,6 +210,7 @@ if __name__ == "__main__":
         batch_size=args["batch_size"],
         learning_rate=args["learning_rate"],
         optimizer=args["optimizer"],
+        n_blocks=args["n_blocks"],
         filters=args["filters"],
         dropout=args["dropout"],
         model_dir=args["model_dir"],
