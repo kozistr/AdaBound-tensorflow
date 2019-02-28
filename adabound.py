@@ -4,22 +4,16 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.ops import control_flow_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.ops import state_ops
-from tensorflow.python.eager import context
-from tensorflow.python.framework import ops
-from tensorflow.python.training import optimizer
-from tensorflow.python.util.tf_export import tf_export
 import re
 
 
-class AdaBoundOptimizer(optimizer.Optimizer):
+class AdaBoundOptimizer(tf.train.Optimizer):
     """Optimizer that implements the AdaBound algorithm.
 
     See [Luo et al., 2019](https://openreview.net/forum?id=Bkg3g2R9FX)
     ([pdf](https://openreview.net/pdf?id=Bkg3g2R9FX)).
     """
+
     def __init__(self,
                  learning_rate=0.001,
                  final_lr=0.1,
@@ -96,17 +90,18 @@ class AdaBoundOptimizer(optimizer.Optimizer):
                 dtype=tf.float32,
                 trainable=False,
                 initializer=tf.zeros_initializer())
-            v_hat = tf.get_variable(
-                name=param_name + "/adabound_v_hat",
-                shape=param.shape.as_list(),
-                dtype=tf.float32,
-                trainable=False,
-                initializer=tf.zeros_initializer())
+            if self._amsbound:
+                v_hat = tf.get_variable(
+                    name=param_name + "/adabound_v_hat",
+                    shape=param.shape.as_list(),
+                    dtype=tf.float32,
+                    trainable=False,
+                    initializer=tf.zeros_initializer())
 
             m_t = (
-                tf.multiply(self._beta1, m) + tf.multiply(1. - self._beta1, grad))
+                    tf.multiply(self._beta1, m) + tf.multiply(1. - self._beta1, grad))
             v_t = (
-                tf.multiply(self._beta2, v) + tf.multiply(1. - self._beta2, tf.square(grad)))
+                    tf.multiply(self._beta2, v) + tf.multiply(1. - self._beta2, tf.square(grad)))
 
             if self._amsbound:
                 # Maintains the maximum of all 2nd moment running avg. till now
@@ -118,20 +113,21 @@ class AdaBoundOptimizer(optimizer.Optimizer):
                 denom = (tf.sqrt(v_t) + self._epsilon)
 
             step_size_p = step_size * tf.ones_like(denom)
-            step_size_p_
+            step_size_p_bound = step_size_p / denom
 
-            update = m_t / (tf.sqrt(v_t) + self._epsilon)
+            lr_t = m_t * tf.clip_by_value(t=step_size_p_bound,
+                                          clip_value_min=lower_bound,
+                                          clip_value_max=upper_bound)
+            p_t = param - lr_t
 
-            # Selectively decay the weight by the layer name
+            # TODO: Selectively decay the weight by the layer name
+            """
             if self._do_use_weight_decay(param_name):
-                update += self._weight_decay * param
-
-            update_with_lr = self.learning_rate * update
-
-            next_param = param - update_with_lr
+                p_t += self._weight_decay * param
+            """
 
             assignments.extend(
-                [param.assign(next_param),
+                [param.assign(p_t),
                  m.assign(m_t),
                  v.assign(v_t)])
         return tf.group(*assignments, name=name)
