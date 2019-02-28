@@ -3,7 +3,7 @@ An optimizer that trains as fast as Adam and as good as SGD in Tensorflow
 
 This repo is based on pytorch impl [original repo](https://github.com/Luolc/AdaBound)
 
-**initial impl is done!, but i cannot sure 100% :(** 
+**Currently, loss becomes NaN :(**
 
 ## Explanation
 An optimizer that trains as fast as Adam and as good as SGD, 
@@ -25,21 +25,21 @@ optimizer = AdaBoundOptimizer(
     beta_2=0.999,
     gamma=1e-3,
     epsilon=1e-6,
-    amsbound=True,
+    amsbound=False,
     weight_decay=0.,
-    exclude_from_weight_decay=["LayerNorm", "layer_norm", "bias"]
+    exclude_from_weight_decay=["bias", "..."]
 )
 ```
 
 Detail usage is in `mnist_test.py`.
 
-## To-Do
+## Results
 
-1. Applying weight decay by the layer name, conditionally (inspired by [here](https://github.com/google-research/bert/blob/master/optimization.py)))
+you can just test the optimizer with MNIST Dataset.
 
-## Demos
-
-Soon!
+```python
+python3 mnist_test --optimizer "adabound"
+```
 
 ## Citation
 
