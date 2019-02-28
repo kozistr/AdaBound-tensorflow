@@ -1,4 +1,4 @@
-# AdaBound
+# AdaBound in Tensorflow
 An optimizer that trains as fast as Adam and as good as SGD in Tensorflow
 
 This repo is based on pytorch impl [original repo](https://github.com/Luolc/AdaBound)
@@ -31,12 +31,15 @@ optimizer = AdaBoundOptimizer(
 )
 ```
 
+Detail usage is in `mnist_test.py`.
+
 ## To-Do
 
-1. Applying weight decay by the layer name, conditionally
+1. Applying weight decay by the layer name, conditionally (inspired by [here](https://github.com/google-research/bert/blob/master/optimization.py)))
 
 ## Demos
 
+Soon!
 
 ## Citation
 
