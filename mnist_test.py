@@ -152,7 +152,6 @@ def main(training_steps,
 
         for steps in range(global_step, training_steps):
             x_tr, y_tr = mnist.train.next_batch(batch_size)
-            x_tr /= 255.
 
             _, tr_loss = sess.run([train_op, loss],
                                   feed_dict={
@@ -164,7 +163,7 @@ def main(training_steps,
             if steps and steps % logging_steps == 0:
                 summary = sess.run(merged,
                                    feed_dict={
-                                       x: mnist.test.images / 255.,
+                                       x: mnist.test.images,
                                        y: mnist.test.labels,
                                        do_rate: 1.,
                                    })
