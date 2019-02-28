@@ -101,6 +101,10 @@ def main(training_steps,
          data_dir,
          log_dir,
          logging_steps):
+    # 0. prepare folders
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(model_dir, exist_ok=True)
+
     # 1. loading the MNIST dataset
     mnist = input_data.read_data_sets(data_dir, one_hot=True)
 
