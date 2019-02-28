@@ -48,7 +48,8 @@ def train(sess,
                                      kernel_initializer=w_init, kernel_regularizer=w_reg)
                 x = tf.nn.leaky_relu(x, alpha=0.2)
                 x = tf.nn.dropout(x, keep_prob=do_rate)
-                x = tf.layers.max_pooling2d(x, pool_size=(3, 3), strides=(2, 2)) if n_layer_idx % 2 == 0 else 0
+                x = tf.layers.max_pooling2d(x, pool_size=(3, 3), strides=(2, 2), padding='SAME') \
+                    if n_layer_idx % 2 == 0 else x
                 n_feat *= 2
 
         x = tf.layers.flatten(x)
