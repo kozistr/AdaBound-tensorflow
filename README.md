@@ -44,9 +44,20 @@ python3 mnist_test --optimizer "amsbound"
 
 ## Results
 
-MNIST DataSet
+Testing Accuracy & Loss among the optimizers on the several data sets w/ under same condition.
 
+### MNIST DataSet
 
+![acc](./assets/mnist_acc.png)
+
+*Optimizer* | *Acc* | *Time* | *Etc* |
+:---: | :---: | :---: | :---: |
+AdaBound | **97.77%** | 5m 45s |  |
+AMSBound | 97.72% | 5m 52s |  |
+Adam | 97.62% | 4m 18s |  |
+AdaGrad | 90.15% | **4m 07s** |  |
+SGD | 87.88% | 5m 26s | |
+Momentum | 87.88% | 4m 26s | w/ nestrov |
 
 ## Citation
 
