@@ -16,7 +16,11 @@ Based on Luo et al. (2019). [Adaptive Gradient Methods with Dynamic Bound of Lea
 ## Usage
 
 ```python
-# learning can be either a scalar or a tensor 
+# learning can be either a scalar or a tensor
+
+# use exclude_from_weight_decay feature, 
+# if you wanna selectively disable updating weight-decayed weights
+
 optimizer = AdaBoundOptimizer(
     learning_rate=1e-3,
     final_lr=1e-1,
@@ -26,7 +30,7 @@ optimizer = AdaBoundOptimizer(
     epsilon=1e-6,
     amsbound=False,
     weight_decay=0.,
-    exclude_from_weight_decay=["bias", "..."]
+    exclude_from_weight_decay=["..."]
 )
 ```
 
