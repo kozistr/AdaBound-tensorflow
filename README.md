@@ -37,8 +37,14 @@ Detail usage is in `mnist_test.py`.
 
 you can just test the optimizer with MNIST Dataset.
 
+for AdaBound Optimizer,
 ```python
 python3 mnist_test --optimizer "adabound"
+```
+
+for AMSBound Optimizer,
+```python
+python3 mnist_test --optimizer "amsbound"
 ```
 
 ## Citation
@@ -53,3 +59,7 @@ python3 mnist_test --optimizer "adabound"
   address = {New Orleans, Louisiana}
 }
 ```
+
+## Author
+
+Hyeongchan Kim / [kozistr](http://kozistr.tech)
