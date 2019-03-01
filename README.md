@@ -54,7 +54,7 @@ Testing Accuracy & Loss among the optimizers on the several data sets w/ under s
 
 ![acc](./assets/mnist_acc.png)
 
-*Optimizer* | *Acc* | *Time* | *Etc* |
+*Optimizer* | *Test Acc* | *Time* | *Etc* |
 :---: | :---: | :---: | :---: |
 AdaBound | **97.77%** | 5m 45s |  |
 AMSBound | 97.72% | 5m 52s |  |
