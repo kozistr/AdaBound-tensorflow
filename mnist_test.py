@@ -52,6 +52,8 @@ def train(sess,
         label = tf.placeholder(tf.int32, shape=(None, n_classes), name="y-label")
         do_rate = tf.placeholder(tf.float32, shape=(), name="dropout")
 
+    """
+    # CNN architecture example
     with tf.variable_scope("simple_cnn_model"):
         x = tf.reshape(img, [-1, 28, 28, 1])
 
@@ -75,7 +77,14 @@ def train(sess,
         logits = tf.layers.dense(x, units=n_classes,
                                  kernel_initializer=w_init, kernel_regularizer=w_reg)
         pred = tf.nn.softmax(logits)
+    """
 
+    with tf.variable_scope("simple_nn_model"):
+        x = tf.layers.dense(img, units=256)
+        x = tf.nn.leaky_relu(x, alpha=0.2)
+
+        logits = tf.layers.dense(x, units=n_classes)
+        pred = tf.nn.softmax(logits)
     with tf.name_scope("loss"):
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=label))
 
