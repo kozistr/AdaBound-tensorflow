@@ -30,19 +30,23 @@ optimizer = AdaBoundOptimizer(
 )
 ```
 
-## Results
+You can simply test the optimizers on MNIST Dataset w/ below model!
 
-you can just test the optimizer with MNIST Dataset.
-
-for AdaBound Optimizer,
+For `AdaBound` optimizer,
 ```python
 python3 mnist_test --optimizer "adabound"
 ```
 
-for AMSBound Optimizer,
+For `AMSBound` optimizer,
 ```python
 python3 mnist_test --optimizer "amsbound"
 ```
+
+## Results
+
+MNIST DataSet
+
+
 
 ## Citation
 
