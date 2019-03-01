@@ -3,8 +3,6 @@ An optimizer that trains as fast as Adam and as good as SGD in Tensorflow
 
 This repo is based on pytorch impl [original repo](https://github.com/Luolc/AdaBound)
 
-**Currently, loss becomes NaN :(**
-
 ## Explanation
 An optimizer that trains as fast as Adam and as good as SGD, 
 for developing state-of-the-art deep learning models on a wide variety of popular tasks in the field of CV, NLP, and etc.
@@ -18,6 +16,7 @@ Based on Luo et al. (2019). [Adaptive Gradient Methods with Dynamic Bound of Lea
 ## Usage
 
 ```python
+# learning can be either a scalar or a tensor 
 optimizer = AdaBoundOptimizer(
     learning_rate=1e-3,
     final_lr=1e-1,
@@ -30,8 +29,6 @@ optimizer = AdaBoundOptimizer(
     exclude_from_weight_decay=["bias", "..."]
 )
 ```
-
-Detail usage is in `mnist_test.py`.
 
 ## Results
 
