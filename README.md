@@ -3,6 +3,9 @@ An optimizer that trains as fast as Adam and as good as SGD in Tensorflow
 
 This repo is based on pytorch impl [original repo](https://github.com/Luolc/AdaBound)
 
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/kozistr/AdaBound-tensorflow.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/kozistr/AdaBound-tensorflow/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/kozistr/AdaBound-tensorflow.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/kozistr/AdaBound-tensorflow/context:python)
+
 ## Explanation
 An optimizer that trains as fast as Adam and as good as SGD, 
 for developing state-of-the-art deep learning models on a wide variety of popular tasks in the field of CV, NLP, and etc.
