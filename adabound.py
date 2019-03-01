@@ -27,8 +27,6 @@ class AdaBoundOptimizer(tf.train.Optimizer):
                  use_locking=False, name="AdaBound"):
         super(AdaBoundOptimizer, self).__init__(use_locking, name)
 
-        if learning_rate <= 0.:
-            raise ValueError("Invalid learning rate : {}".format(learning_rate))
         if final_lr <= 0.:
             raise ValueError("Invalid final learning rate : {}".format(final_lr))
         if not 0. <= beta1 < 1.:
