@@ -82,6 +82,11 @@ def train(sess,
     with tf.variable_scope("simple_nn_model"):
         x = tf.layers.dense(img, units=256)
         x = tf.nn.leaky_relu(x, alpha=0.2)
+        x = tf.nn.dropout(x, do_rate)
+
+        x = tf.layers.dense(x, units=64)
+        x = tf.nn.leaky_relu(x, alpha=0.2)
+        x = tf.nn.dropout(x, do_rate)
 
         logits = tf.layers.dense(x, units=n_classes)
         pred = tf.nn.softmax(logits)
