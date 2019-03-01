@@ -20,19 +20,30 @@ def train(sess,
           n_feat=32, n_blocks=2,
           optimizer="adabound", lr=1e-3, grad_clip=0.,
           log_dir="./logs"):
-    def prepare_optimizer(optimizer_name):
+    def prepare_optimizer(optimizer_name, _global_step):
+        # You can just use learning rate
+        # either scalar value or tensor like below form
+        # learning_rate = lr
+        learning_rate = tf.train.exponential_decay(
+            learning_rate=lr,
+            global_step=_global_step,
+            decay_steps=500,
+            decay_rate=.95,
+            staircase=True,
+        )
+        
         if optimizer_name == "adabound":
-            return AdaBoundOptimizer(learning_rate=lr)
+            return AdaBoundOptimizer(learning_rate=learning_rate)
         elif optimizer_name == "amsbound":
-            return AdaBoundOptimizer(learning_rate=lr, amsbound=True)
+            return AdaBoundOptimizer(learning_rate=learning_rate, amsbound=True)
         elif optimizer_name == "adam":
-            return tf.train.AdamOptimizer(learning_rate=lr)
+            return tf.train.AdamOptimizer(learning_rate=learning_rate)
         elif optimizer_name == "sgd":
-            return tf.train.GradientDescentOptimizer(learning_rate=lr)
+            return tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
         elif optimizer_name == "adagrad":
-            return tf.train.AdagradOptimizer(learning_rate=lr)
+            return tf.train.AdagradOptimizer(learning_rate=learning_rate)
         elif optimizer_name == "momentum":
-            return tf.train.MomentumOptimizer(learning_rate=lr, momentum=1e-6, use_nesterov=True)
+            return tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=1e-6, use_nesterov=True)
         else:
             raise NotImplementedError("[-] Unsupported Optimizer %s" % optimizer_name)
 
@@ -70,7 +81,7 @@ def train(sess,
 
     with tf.name_scope("train"):
         global_step = tf.train.get_or_create_global_step()
-        opt = prepare_optimizer(optimizer)
+        opt = prepare_optimizer(optimizer, global_step)
 
         t_vars = tf.trainable_variables()
         grads = tf.gradients(loss, t_vars)
