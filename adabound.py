@@ -61,7 +61,7 @@ class AdaBoundOptimizer(tf.train.Optimizer):
 
         bias_correction1 = 1. - (self._beta1 ** t)
         bias_correction2 = 1. - (self._beta2 ** t)
-        step_size = (lr * tf.sqrt(1. - bias_correction2) / bias_correction1)
+        step_size = (lr * tf.sqrt(bias_correction2) / bias_correction1)
 
         # Applies bounds on actual learning rate
         # lr_scheduler cannot affect final_lr, this is a workaround to apply lr decay
