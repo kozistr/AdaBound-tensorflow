@@ -22,6 +22,7 @@ class AdaBoundOptimizer(tf.train.Optimizer):
                  gamma=1e-3,
                  epsilon=1e-8,
                  amsbound=False,
+                 decay=0.,
                  weight_decay=0.,
                  exclude_from_weight_decay=None,
                  use_locking=False, name="AdaBound"):
@@ -45,6 +46,7 @@ class AdaBoundOptimizer(tf.train.Optimizer):
         self._gamma = gamma
         self._epsilon = epsilon
         self._amsbound = amsbound
+        self._decay = decay
         self._weight_decay = weight_decay
         self._exclude_from_weight_decay = exclude_from_weight_decay
 
@@ -54,8 +56,8 @@ class AdaBoundOptimizer(tf.train.Optimizer):
         lr = self._lr
         t = tf.cast(global_step, dtype=tf.float32)
 
-        if self._weight_decay > 0.:
-            lr *= (1. / (1. + self._weight_decay * t))
+        if self._decay > 0.:
+            lr *= (1. / (1. + self._decay * t))
 
         t += 1
 
