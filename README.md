@@ -32,6 +32,7 @@ optimizer = AdaBoundOptimizer(
     gamma=1e-3,
     epsilon=1e-6,
     amsbound=False,
+    decay=0.,
     weight_decay=0.,
     exclude_from_weight_decay=["..."]
 )
