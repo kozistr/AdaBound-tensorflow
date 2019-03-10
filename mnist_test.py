@@ -106,12 +106,6 @@ def train(sess,
 
         train_op = opt.apply_gradients(zip(grads, t_vars), global_step=global_step)
 
-        # Normally the global step update is done inside of `apply_gradients`.
-        # However, my version of `AdaBoundyOptimizer` doesn't do this. But if you use
-        # a different optimizer, you should probably take this line out.
-        if optimizer in ["adabound", "amsbound"]:
-            train_op = tf.group(train_op, [global_step.assign(global_step + 1)])
-
     with tf.name_scope("metric"):
         corr_pred = tf.equal(tf.argmax(pred, axis=1), tf.argmax(label, axis=1))
         acc = tf.reduce_mean(tf.cast(corr_pred, dtype=tf.float32))
@@ -150,9 +144,7 @@ def main(training_steps,
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
         # 2. loading the model
-        (x, y, do_rate),\
-        merged, train_op, loss,\
-        (tr_writer, te_writer, saver) = train(
+        (x, y, do_rate), merged, train_op, loss, (tr_writer, te_writer, saver) = train(
             sess=sess,
             input_shape=(None, 28 * 28),
             n_classes=n_classes,
@@ -215,7 +207,7 @@ def main(training_steps,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--training_steps', required=False, type=int, default=100000)
+    parser.add_argument('--training_steps', required=False, type=int, default=50001)
     parser.add_argument('--n_classes', required=False, type=int, default=10)
     parser.add_argument('--batch_size', required=False, type=int, default=128)
     parser.add_argument('--learning_rate', required=False, type=float, default=0.001)

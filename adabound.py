@@ -128,6 +128,10 @@ class AdaBoundOptimizer(tf.train.Optimizer):
                 update_list.append(v_hat.assign(v_hat_t))
 
             assignments.extend(update_list)
+
+        # update the global step
+        assignments.append(global_step.assign_add(1))
+
         return tf.group(*assignments, name=name)
 
     def _do_use_weight_decay(self, param_name):
