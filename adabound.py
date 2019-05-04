@@ -73,7 +73,7 @@ class AdaBoundOptimizer(tf.train.Optimizer):
 
         assignments = []
         for grad, param in grads_and_vars:
-            if grad is None and param is None:
+            if grad is None or param is None:
                 continue
 
             param_name = self._get_variable_name(param.name)
